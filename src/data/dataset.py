@@ -9,9 +9,22 @@ class DatasetFactory:
 
     @staticmethod
     def get_by_name(dataset_name, *args, **kwargs):
+        print(dataset_name)
         if dataset_name == 'cifar10':
             from src.data.cifar10 import Cifar10Dataset
             dataset = Cifar10Dataset(*args, **kwargs)
+        elif dataset_name == 'mediapipe_handover':
+            from src.data.mediapipe_handover import MediapipeHandover
+            dataset = MediapipeHandover(*args, **kwargs)
+        elif dataset_name == 'h36m':
+            from src.data.h36m import H36M
+            dataset = H36M(*args, **kwargs)
+        elif dataset_name == 'canopies':
+            from src.data.canopies import CANOPIESDataset
+            dataset = CANOPIESDataset(*args, **kwargs)
+        elif dataset_name == 'assistive_robotics':
+            from src.data.assistive_robotics import AssistiveRoboticsDataset
+            dataset = AssistiveRoboticsDataset(*args, **kwargs)
         else:
             raise ValueError("Dataset [%s] not recognized." % dataset_name)
 

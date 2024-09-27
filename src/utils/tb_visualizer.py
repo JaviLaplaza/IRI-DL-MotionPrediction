@@ -1,7 +1,7 @@
 import os
 import time
 from . import util
-from tensorboardX import SummaryWriter
+from torch.utils.tensorboard import SummaryWriter
 
 class TBVisualizer:
     def __init__(self, opt):
@@ -27,11 +27,14 @@ class TBVisualizer:
     def display_current_results(self, visuals, it, is_train, save_visuals=False):
         # add visuals to events file
         for label, image_numpy in visuals.items():
+
             sum_name = '{}/{}'.format('Train' if is_train else 'Val', label)
-            if image_numpy.ndim == 3:
-                self._writer_full.add_image(sum_name, image_numpy, it)
-            else:
-                self._writer_full.add_video(sum_name, image_numpy, it)
+            # if image_numpy.ndim == 3:
+            #     self._writer_full.add_image(sum_name, image_numpy, it)
+            # else:
+            #     self._writer_full.add_video(sum_name, image_numpy, it)
+
+            self._writer_full.add_video(sum_name, image_numpy, it)
 
             # save image to file
             if save_visuals:
@@ -70,6 +73,12 @@ class TBVisualizer:
         self._writer_full.add_scalar("read_time", read_time, it)
         self._writer_full.add_scalar("train_time", train_time, it)
 
+    def plot_model_graph(self, model, input):
+        self._writer_full.add_graph(model, input_to_model=input)
+
+    def plot_embedding(self, data, metadata, label_img=None, global_step=None):
+        self._writer_full.add_embedding(data, metadata=metadata, label_img=label_img, global_step=global_step)
+
     def print_current_train_errors(self, epoch, i, iters_per_epoch, errors, iter_read_time,
                                    iter_procs_time, visuals_were_stored):
         # set label
@@ -89,6 +98,14 @@ class TBVisualizer:
         # print in terminal and store in log file
         self._print_and_store_errors(errors, message)
 
+    def print_current_validate_metrics(self, epoch, errors, t):
+        # set label
+        log_time = time.strftime("[%d/%m/%Y %H:%M:%S]")
+        message = '%s (V, epoch: %d, time_to_val: %ds) ' % (log_time, epoch, t)
+
+        # print in terminal and store in log file
+        self._print_and_store_errors(errors, message)
+
     def print_epoch_avg_errors(self, epoch, errors, is_train):
         # set label
         label = "MT" if is_train else "MV"
@@ -101,6 +118,16 @@ class TBVisualizer:
     def _print_and_store_errors(self, errors, message):
         # set errors msg
         for k, v in errors.items():
+            print(k, v)
+            message += '%s:%.3f ' % (k, v)
+
+        # print in terminal and store in log file
+        print(message)
+        self._save_log(message)
+
+    def _print_and_store_metrics(self, metrics, message):
+        # set errors msg
+        for k, v in metrics.items():
             message += '%s:%.3f ' % (k, v)
 
         # print in terminal and store in log file

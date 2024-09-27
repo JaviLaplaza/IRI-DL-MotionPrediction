@@ -1,0 +1,75 @@
+{"dataset": {
+    "type": "h36m",
+    "batch_size": 64,
+    "serial_batches": false,
+    "drop_last_batch": true,
+    "n_threads": 1,
+    "test": 0
+  },
+
+  "h36m": {
+    "data_dir": "/media/jlaplaza/DATANEW/datasets/h3.6m/dataset",
+    "input_n": 50,
+    "output_n": 25,
+    "skip_rate": 5,
+    "features": 39,
+    "train_ids": [1, 6, 7, 8, 9, 11],
+    "val_ids": [5],
+    "test_ids": [5],
+    "actions": ["walking", "walkingdog", "walkingtogether"],
+    "one_hot": false,
+    "sample_rate": 1
+  },
+
+  "networks": {
+    "reg": {
+      "type": "motion_attention",
+      "hyper_params": {
+        "input_n": 50,
+        "output_n": 25,
+        "in_features": 39,
+        "kernel_size": 10,
+        "d_model": 512,
+        "dct_n": 20,
+        "itera": 1,
+        "num_heads": 10,
+        "ree_condition": false,
+        "fusion_model": 1,
+        "obstacle_condition": false,
+        "robot_path_condition": false,
+        "phase_condition": false,
+        "intention_condition": false
+      }
+    }
+  },
+
+  "model": {
+    "load_epoch": -1,
+    "type": "HistRepItself",
+    "master_gpu": 0,
+    "reg_gpus": [0]
+  },
+
+  "train": {
+    "nepochs_no_decay": 10,
+    "nepochs_decay": 19990,
+    "reg_lr": 0.001,
+    "num_iters_validate": 10
+  },
+
+  "losses": {
+    "type": "L_total",
+    "weights": {
+      "wx": -1,
+      "wy": -1,
+      "wz": -1,
+      "we": -1,
+      "wo": -1,
+      "wf": -1,
+      "wp": -1,
+      "wi": -1
+    }
+  }
+}
+
+

@@ -1,4 +1,4 @@
-import cv2
+# import cv2
 
 
 class TransformsFactory:
@@ -17,11 +17,20 @@ class TransformsFactory:
             from .normalize import Normalize
             network = Normalize(perkey_args, general_args)
         elif transform_name == "rand_horz_flip":
-            from .rand_horz_fip import RandomHorizontalFlip
+            from .rand_horz_flip import RandomHorizontalFlip
             network = RandomHorizontalFlip(perkey_args, general_args)
         elif transform_name == "rand_scale_n_rotate":
             from .rand_scale_n_rotate import RandScaleNRotate
             network = RandScaleNRotate(perkey_args, general_args)
+        elif transform_name == "rand_mediapipe_skel_rotate":
+            from .rnd_skeleton_sequence_flip import RndSkeletonSequenceFlip
+            network = RndSkeletonSequenceFlip(perkey_args, general_args)
+        elif transform_name == "noise":
+            from .noise import Noise
+            network = Noise(perkey_args, general_args)
+        elif transform_name == "translation":
+            from .translation import Translation
+            network = Translation(perkey_args, general_args)
         else:
             raise ValueError("Transform %s not recognized." % transform_name)
 
@@ -39,11 +48,14 @@ class TransformBase(object):
 
     def _interpolation_str_to_cv2(self, interp_str):
         if interp_str == 'nearest':
-            interp = cv2.INTER_NEAREST
+            interp = "foo"
+            # interp = cv2.INTER_NEAREST
         elif interp_str == "linear":
-            interp = cv2.INTER_LINEAR
+            interp = "foo"
+            # interp = cv2.INTER_LINEAR
         elif interp_str == "cubic":
-            interp = cv2.INTER_CUBIC
+            interp = "foo"
+            # interp = cv2.INTER_CUBIC
         else:
             raise ValueError("Interpolation not available")
         return interp

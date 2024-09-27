@@ -109,3 +109,4 @@ cifar-10-batches-py/
 checkpoints/
 events/
 test/
+/experiments/HistRepItself/

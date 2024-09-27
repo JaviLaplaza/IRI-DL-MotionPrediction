@@ -39,14 +39,46 @@ class CustomDatasetDataLoader:
         self._batch_size = self._opt[dataset_type]["batch_size"]
         self._dataset = DatasetFactory.get_by_name(self._opt[dataset_type]["type"], self._opt, self._is_for, self._subset, transform, dataset_type)
 
-        # create dataloader
-        self._dataloader = torch.utils.data.DataLoader(
-            self._dataset,
-            batch_size=self._batch_size,
-            shuffle=not self._opt[dataset_type]["serial_batches"],
-            num_workers=self._opt[dataset_type]["n_threads"],
-            drop_last=bool(self._opt[dataset_type]["drop_last_batch"]),
-            pin_memory=True)
+        if self._is_for == 'train':
+            from torch.utils.data import WeightedRandomSampler
+            weights = torch.empty(len(self._dataset))
+            for i, sample in enumerate(self._dataset):
+                if sample['intention_goal'] == 0:
+                    weights[i] = 1 / (862 / 1033)
+
+                elif sample['intention_goal'] == 1:
+                    weights[i] = 1 / (38 / 1033)
+
+                elif sample['intention_goal'] == 2:
+                    weights[i] = 1 / (113 / 1033)
+
+                elif sample['intention_goal'] == 3:
+                    weights[i] = 1 / (20 / 1033)
+
+                elif sample['intention_goal'] == 4:
+                    weights[i] = 1 / (20 / 1033)
+
+            sampler = WeightedRandomSampler(weights=weights, num_samples=20, replacement=False)
+
+            # create dataloader
+            self._dataloader = torch.utils.data.DataLoader(
+                self._dataset,
+                batch_size=self._batch_size,
+                shuffle=False,
+                num_workers=self._opt[dataset_type]["n_threads"],
+                drop_last=bool(self._opt[dataset_type]["drop_last_batch"]),
+                sampler=sampler,
+                pin_memory=True)
+
+        else:
+            # create dataloader
+            self._dataloader = torch.utils.data.DataLoader(
+                self._dataset,
+                batch_size=self._batch_size,
+                shuffle=not self._opt[dataset_type]["serial_batches"],
+                num_workers=self._opt[dataset_type]["n_threads"],
+                drop_last=bool(self._opt[dataset_type]["drop_last_batch"]),
+                pin_memory=True)
 
     def get_batch_size(self):
         return self._batch_size

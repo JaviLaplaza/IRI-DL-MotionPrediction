@@ -13,6 +13,9 @@ class ModelsFactory:
         if model_name == 'model1':
             from .model1 import Model1
             model = Model1(*args, **kwargs)
+        elif model_name == 'HistRepItself':
+            from .HistRepItself import HistRepItself
+            model = HistRepItself(*args, **kwargs)
         else:
             raise ValueError("Model %s not recognized." % model_name)
 
@@ -33,6 +36,7 @@ class BaseModel(object):
         self._reg_device_master = f"cuda:{self._reg_gpus_ids[0]}" if torch.cuda.is_available() else "cpu"
 
         self._is_train = opt["model"]["is_train"]
+        self._dataset_name = opt['dataset']['type']
         self._dataset_type = "dataset_train" if self._is_train else "dataset_test"
         self._saved_files = {"checkpoint": dict()}
 

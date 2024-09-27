@@ -8,6 +8,8 @@ from src.utils.util import append_dictionaries, mean_dictionary
 import numpy as np
 import time
 
+torch.manual_seed(0)
+
 class Train:
     def __init__(self):
         self._opt = ConfigParser().get_config()
@@ -40,6 +42,16 @@ class Train:
         self._dataset_train = data_loader_train.load_data()
         self._dataset_val = data_loader_val.load_data()
 
+        # if desired, shuffle and split the dataset in train, val and test
+        mix_subjects = False
+        if mix_subjects:
+            from torch.utils.data import DataLoader
+            train_batch_size = self._opt['dataset']['batch_size']
+            test_batch_size = self._opt['dataset_test']['batch_size']
+            self._dataset_train, self._dataset_val = torch.utils.data.random_split(self._dataset_train, [int(0.8 * len(self._dataset_train)), 1 + int(0.2 * len(self._dataset_train))])
+            data_loader_train = DataLoader(self._dataset_train, batch_size=train_batch_size, shuffle=True)
+            data_loader_val = DataLoader(self._dataset_val, batch_size=test_batch_size, shuffle=True)
+
         # get dataset properties
         self._dataset_train_size = len(data_loader_train)
         self._dataset_val_size = len(data_loader_val)
@@ -49,9 +61,10 @@ class Train:
         self._tb_visualizer.print_msg('#train images = %d' % self._dataset_train_size)
         self._tb_visualizer.print_msg('#val images = %d' % self._dataset_val_size)
 
-        # get batch size
-        self._train_batch_size = data_loader_train.get_batch_size()
-        self._val_batch_size = data_loader_val.get_batch_size()
+        if not mix_subjects:
+            # get batch size
+            self._train_batch_size = data_loader_train.get_batch_size()
+            self._val_batch_size = data_loader_val.get_batch_size()
 
     def _get_conf_params(self):
         self._load_epoch = self._opt["model"]["load_epoch"]
@@ -73,6 +86,7 @@ class Train:
         self._last_display_time = None
         self._last_save_latest_time = None
         self._last_print_time = time.time()
+        self._best_val_body_metrics = 10000
 
         self._i_epoch = self._load_epoch + 1
         self._model.update_learning_rate(max(self._load_epoch + 1, 1))
@@ -105,8 +119,10 @@ class Train:
         iter_read_time = 0
         iter_procs_time = 0
         num_iters_time = 0
+
         self._epoch_train_e = dict()
         self._epoch_val_e = dict()
+        self._epoch_val_m = dict()
 
         for i_train_batch, train_batch in enumerate(self._dataset_train):
             iter_read_time += (time.time() - iter_start_time) / self._train_batch_size
@@ -119,6 +135,7 @@ class Train:
             do_print_terminal = time.time() - self._last_print_time > self._print_freq_s or do_visuals
 
             # train model
+
             self._model.set_input(train_batch)
             self._model.optimize_parameters(keep_data_for_visuals=do_visuals)
 
@@ -136,14 +153,22 @@ class Train:
 
             # display visualizer
             if do_visuals:
+                # self._display_visualizer_model(self._model, self._model.get_inputs()[0])
                 self._display_visualizer_train(self._total_steps, iter_read_time, iter_procs_time)
                 self._display_visualizer_val(i_epoch, self._total_steps)
                 self._last_display_time = time.time()
 
             # save model
+
+            print(i_epoch)
+            if i_epoch % 50 == 0:
+                self._model.save(i_epoch, "checkpoint", do_remove_prev=False)
+
             if self._last_save_latest_time is None or time.time() - self._last_save_latest_time > self._save_latest_freq_s:
                 self._model.save(i_epoch, "checkpoint")
                 self._last_save_latest_time = time.time()
+
+
 
             # reset metadata time
             if do_print_terminal:
@@ -159,6 +184,10 @@ class Train:
                                                        iter_read_time, iter_procs_time, visuals_flag)
         self._epoch_train_e = append_dictionaries(self._epoch_train_e, errors)
 
+
+    def _display_visualizer_model(self, model, input):
+        self._tb_visualizer.plot_model_graph(model._reg, input=input)
+
     def _display_visualizer_train(self, total_steps, iter_read_time, iter_procs_time):
         self._tb_visualizer.display_current_results(self._model.get_current_visuals(), total_steps, is_train=True)
         self._tb_visualizer.plot_scalars(self._model.get_current_errors(), total_steps, is_train=True)
@@ -169,6 +198,7 @@ class Train:
     def _display_visualizer_avg_epoch(self, epoch):
         e_train = mean_dictionary(self._epoch_train_e)
         e_val = mean_dictionary(self._epoch_val_e)
+        m_val = mean_dictionary(self._epoch_val_m)
         self._tb_visualizer.print_epoch_avg_errors(epoch, e_train, is_train=True)
         self._tb_visualizer.print_epoch_avg_errors(epoch, e_val, is_train=False)
         self._tb_visualizer.plot_scalars(e_train, epoch, is_train=True, is_mean=True)
@@ -182,6 +212,11 @@ class Train:
 
         # evaluate self._opt.num_iters_validate epochs
         val_errors = dict()
+        val_body_metrics = dict()
+        val_right_hand_metrics = dict()
+        val_preintention_metrics = dict()
+        val_postintention_metrics = dict()
+
         with torch.no_grad():
             vis_batch_idx = np.random.randint(min(self._num_iters_validate, self._dataset_val_size))
             for i_val_batch, val_batch in enumerate(self._dataset_val):
@@ -197,6 +232,21 @@ class Train:
                 errors = self._model.get_current_errors()
                 val_errors = append_dictionaries(val_errors, errors)
 
+                # store metrics
+                body_metrics = self._model.get_current_body_metrics()
+                val_body_metrics = append_dictionaries(val_body_metrics, body_metrics)
+
+                right_hand_metrics = self._model.get_current_right_hand_metrics()
+                val_right_hand_metrics = append_dictionaries(val_right_hand_metrics, right_hand_metrics)
+
+                if self._model._intention_condition:
+                    preintention_metrics = self._model.get_current_preintention_metrics()
+                    val_preintention_metrics = append_dictionaries(val_preintention_metrics, preintention_metrics)
+
+                if self._model._intention_prediction:
+                    postintention_metrics = self._model.get_current_postintention_metrics()
+                    val_postintention_metrics = append_dictionaries(val_postintention_metrics, postintention_metrics)
+
                 # keep visuals
                 if keep_data_for_visuals:
                     self._tb_visualizer.display_current_results(self._model.get_current_visuals(), total_steps,
@@ -206,12 +256,31 @@ class Train:
 
             # store error
             val_errors = mean_dictionary(val_errors)
+            val_body_metrics = mean_dictionary(val_body_metrics)
+            val_right_hand_metrics = mean_dictionary(val_right_hand_metrics)
+            val_preintention_metrics = mean_dictionary(val_preintention_metrics)
+            val_postintention_metrics = mean_dictionary(val_postintention_metrics)
             self._epoch_val_e = append_dictionaries(self._epoch_val_e, val_errors)
+            self._epoch_val_body_m = append_dictionaries(self._epoch_val_m, val_body_metrics)
+            self._epoch_val_right_hand_m = append_dictionaries(self._epoch_val_m, val_right_hand_metrics)
+
+            # save model if it has a better performance on validation
+            if val_body_metrics['body_metrics'] < self._best_val_body_metrics:
+                self._best_val_body_metrics = val_body_metrics['body_metrics']
+                self._model.save_best(i_epoch, "checkpoint")
 
         # visualize
         t = (time.time() - val_start_time)
         self._tb_visualizer.print_current_validate_errors(i_epoch, val_errors, t)
+        self._tb_visualizer.print_current_validate_metrics(i_epoch, val_body_metrics, t)
+        self._tb_visualizer.print_current_validate_metrics(i_epoch, val_right_hand_metrics, t)
+        self._tb_visualizer.print_current_validate_metrics(i_epoch, val_preintention_metrics, t)
+        self._tb_visualizer.print_current_validate_metrics(i_epoch, val_postintention_metrics, t)
         self._tb_visualizer.plot_scalars(val_errors, total_steps, is_train=False)
+        self._tb_visualizer.plot_scalars(val_body_metrics, total_steps, is_train=False)
+        self._tb_visualizer.plot_scalars(val_right_hand_metrics, total_steps, is_train=False)
+        self._tb_visualizer.plot_scalars(val_preintention_metrics, total_steps, is_train=False)
+        self._tb_visualizer.plot_scalars(val_postintention_metrics, total_steps, is_train=False)
 
         # set model back to train
         self._model.set_train()

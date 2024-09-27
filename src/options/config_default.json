@@ -12,6 +12,61 @@
     "test_ids_file": "test_ids.txt"
   },
 
+  "mediapipe_handover": {
+    "data_dir": "/media/jlaplaza/DATANEW/datasets/ivo_handover_dataset",
+    "input_n": 50,
+    "output_n": 25,
+    "skip_rate": 1,
+    "features": 27,
+    "train_ids": [1, 2, 3, 4, 5, 6, 7, 8],
+    "val_ids": [9, 10],
+    "test_ids": [9, 10]
+  },
+
+  "h36m": {
+    "data_dir": "/media/jlaplaza/DATANEW/datasets/h3.6m/dataset",
+    "input_n": 50,
+    "output_n": 25,
+    "skip_rate": 5,
+    "features": 27,
+    "train_ids": [1, 6, 7, 8, 9, 11],
+    "val_ids": [5],
+    "test_ids": [5],
+    "actions": ["directions", "discussion", "eating", "greeting", "phoning",
+ "posing", "purchases", "sitting", "sittingdown", "smoking",
+ "takingphoto", "waiting", "walking", "walkingdog", "walkingtogether"],
+    "one_hot": false,
+    "sample_rate": 1
+  },
+
+  "canopies": {
+    "data_dir": "/media/jlaplaza/sg2_4tb/datasets/CANOPIES-HRI/rosbags_2nd_campaign/harvesting/skeletons_camera_frame_postprocessed_intention",
+    "input_n": 50,
+    "output_n": 25,
+    "skip_rate": 3,
+    "features": 27,
+    "train_ids": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "val_ids": [10],
+    "test_ids": [10],
+    "one_hot": false,
+    "sample_rate": 1,
+    "pretrained": -1
+  },
+
+  "assistive_robotics": {
+    "data_dir": "/media/jlaplaza/DATANEW/SubjectData",
+    "input_n": 50,
+    "output_n": 25,
+    "skip_rate": 3,
+    "features": 27,
+    "train_ids": [1, 2, 3, 4, 5, 6, 7, 8, 9],
+    "val_ids": [10],
+    "test_ids": [10],
+    "one_hot": false,
+    "sample_rate": 1,
+    "pretrained": -1
+  },
+
   "dataset": {
     "type": "cifar10",
     "batch_size": 16,
@@ -22,12 +77,15 @@
     "drop_last_batch": true,
     "n_threads": 1
   },
+
   "dataset_train": {
     "n_threads": 3
   },
+
   "dataset_val": {
     "serial_batches": true
   },
+
   "dataset_test": {
     "batch_size": 1,
     "drop_last_batch": false,
@@ -39,7 +97,7 @@
     "load_epoch": -1,
     "type": "model1",
     "master_gpu": 0,
-    "reg_gpus": [0]
+    "reg_gpus": [0, 1]
   },
 
   "train": {
@@ -59,8 +117,16 @@
     "reg": {
       "type": "resnet18",
       "hyper_params": {
-        "num_classes": 10
       }
+    }
+  },
+
+  "losses": {
+      "type": "L2",
+      "weights": {
+        "wx": 1,
+        "wy": 1,
+        "wz": 1
     }
   },
 
@@ -85,11 +151,33 @@
         "img": {}
       }
     },
+    "rand_mediapipe_skel_rotate": {
+      "type": "rand_mediapipe_skel_rotate",
+      "general_args": {
+      },
+      "perkey_args": {
+        "xyz": {}
+      }
+    },
+    "noise": {
+      "type": "noise",
+      "general_args": {},
+      "perkey_args": {
+        "xyz": {}
+      }
+    },
     "horz_flip": {
       "type": "rand_horz_flip",
       "general_args": {},
       "perkey_args": {
         "img": {}
+      }
+    },
+    "translation": {
+      "type": "translation",
+      "general_args": {},
+      "perkey_args": {
+        "xyz": {}
       }
     }
   }

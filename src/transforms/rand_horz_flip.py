@@ -1,7 +1,7 @@
 from __future__ import division
 
 import numpy.random as random
-import cv2
+# import cv2
 from src.transforms.transforms import TransformBase
 
 class RandomHorizontalFlip(TransformBase):
@@ -27,7 +27,7 @@ class RandomHorizontalFlip(TransformBase):
 
     def _flip(self, elem, do_flip):
         if do_flip:
-            elem = cv2.flip(elem, flipCode=1)
+            elem = 'foo' # cv2.flip(elem, flipCode=1)
         return elem
 
     def __str__(self):

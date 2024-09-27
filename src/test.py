@@ -1,4 +1,8 @@
 import argparse
+
+import torch
+from torchvision import transforms
+
 from src.options.config_parser import ConfigParser
 from src.data.custom_dataset_data_loader import CustomDatasetDataLoader
 from src.models.models import ModelsFactory
@@ -6,7 +10,12 @@ from src.utils.util import mkdir, tensor2im
 from tqdm import tqdm
 import time
 import os
+import imageio
+import glob
 import cv2
+import numpy as np
+
+import torchvision
 
 class Test:
     def __init__(self, args):
@@ -70,15 +79,27 @@ class Test:
             n_total_time += 1
 
             # store estimate
-            self._save_img(estimate, i_test_batch)
+            self._save_seq(estimate, i_test_batch, fps=30)
 
         print(f"mean time per sample: {total_time/n_total_time}")
 
-    def _save_img(self, img, id):
+    def _save_seq(self, seq, id, fps):
         filename = "{0:05d}.png".format(id)
         filepath = os.path.join(self._opt["dirs"]["exp_dir"], self._opt["dirs"]["test"], self._save_foler, filename)
-        img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
-        cv2.imwrite(filepath, img)
+        # seq = torch.permute(seq, [0, 2, 3, 1]).to(dtype=torch.uint8)
+        im_seq = []
+        # videodims = (640, 480)
+        # fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        # video = cv2.VideoWriter(filepath, fourcc, 60, videodims)
+        # torchvision.io.write_video(filename=filepath, video_array=seq, fps=fps)
+        for frame in seq:
+            torchvision.io.write_jpeg(frame.to(dtype=torch.uint8), filename=filepath)
+            # im_seq.append(transforms.ToPILImage()(frame).convert("RGB"))
+            # video.write(cv2.cvtColor(np.array(transforms.ToPILImage()(frame).convert("RGB")), cv2.COLOR_RGB2BGR))
+            # video.write(cv2.cvtColor(np.array(transforms.ToPILImage()(frame)), cv2.COLOR_RGB2BGR))
+
+        # video.release()
+        # torchvision.io.write_video(filename=filepath, video_array=im_seq, fps=fps, video_codec='libx264')
 
 
 if __name__ == "__main__":

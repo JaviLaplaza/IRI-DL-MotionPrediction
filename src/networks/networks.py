@@ -15,6 +15,9 @@ class NetworksFactory:
         elif network_name == 'vgg11':
             from .vgg11 import VGG11
             network = VGG11(*args, **kwargs)
+        elif network_name == 'motion_attention':
+            from .MixAttention import MixAttention
+            network = MixAttention(*args, **kwargs)
         else:
             raise ValueError("Network %s not recognized." % network_name)
 
